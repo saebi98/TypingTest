@@ -10,12 +10,15 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.typingtest.korean.data.TypingLanguage
 import com.typingtest.korean.data.TypingRecordStore
 import com.typingtest.korean.ui.game.AcidRainGameScreen
 import com.typingtest.korean.ui.home.HomeScreen
@@ -49,6 +52,7 @@ fun KoreanTypingApp() {
     val recordStore = remember { TypingRecordStore.getInstance(context) }
     val summary by recordStore.summaryFlow.collectAsState()
     val navController = rememberNavController()
+    var selectedLanguage by remember { mutableStateOf(TypingLanguage.KOREAN) }
 
     NavHost(
         navController = navController,
@@ -57,6 +61,8 @@ fun KoreanTypingApp() {
         composable("home") {
             HomeScreen(
                 summary = summary,
+                selectedLanguage = selectedLanguage,
+                onSelectLanguage = { selectedLanguage = it },
                 onNavigatePosition = { navController.navigate("position") },
                 onNavigateWord = { navController.navigate("word") },
                 onNavigateShortText = { navController.navigate("short_text") },
@@ -68,6 +74,8 @@ fun KoreanTypingApp() {
 
         composable("position") {
             PositionPracticeScreen(
+                initialLanguage = selectedLanguage,
+                onLanguageChange = { selectedLanguage = it },
                 onSaveRecord = { mode, title, avgCpm, maxCpm, acc, score, durSec ->
                     recordStore.insertRecord(mode, title, avgCpm, maxCpm, acc, score, durSec)
                 },
@@ -77,6 +85,8 @@ fun KoreanTypingApp() {
 
         composable("word") {
             WordPracticeScreen(
+                initialLanguage = selectedLanguage,
+                onLanguageChange = { selectedLanguage = it },
                 onSaveRecord = { mode, title, avgCpm, maxCpm, acc, score, durSec ->
                     recordStore.insertRecord(mode, title, avgCpm, maxCpm, acc, score, durSec)
                 },
@@ -86,6 +96,8 @@ fun KoreanTypingApp() {
 
         composable("short_text") {
             ShortSentenceScreen(
+                initialLanguage = selectedLanguage,
+                onLanguageChange = { selectedLanguage = it },
                 onSaveRecord = { mode, title, avgCpm, maxCpm, acc, score, durSec ->
                     recordStore.insertRecord(mode, title, avgCpm, maxCpm, acc, score, durSec)
                 },
@@ -95,6 +107,8 @@ fun KoreanTypingApp() {
 
         composable("long_text") {
             LongTextScreen(
+                initialLanguage = selectedLanguage,
+                onLanguageChange = { selectedLanguage = it },
                 onSaveRecord = { mode, title, avgCpm, maxCpm, acc, score, durSec ->
                     recordStore.insertRecord(mode, title, avgCpm, maxCpm, acc, score, durSec)
                 },
@@ -104,6 +118,8 @@ fun KoreanTypingApp() {
 
         composable("acid_rain") {
             AcidRainGameScreen(
+                initialLanguage = selectedLanguage,
+                onLanguageChange = { selectedLanguage = it },
                 onSaveRecord = { mode, title, avgCpm, maxCpm, acc, score, durSec ->
                     recordStore.insertRecord(mode, title, avgCpm, maxCpm, acc, score, durSec)
                 },

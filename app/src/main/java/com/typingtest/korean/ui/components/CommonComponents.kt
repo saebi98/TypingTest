@@ -32,8 +32,45 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.typingtest.korean.data.TypingLanguage
 import com.typingtest.korean.engine.CharMatchStatus
 import kotlin.math.roundToInt
+
+@Composable
+fun LanguageSelectorRow(
+    selectedLanguage: TypingLanguage,
+    onSelectLanguage: (TypingLanguage) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        TypingLanguage.entries.forEach { lang ->
+            val isSelected = selectedLanguage == lang
+            Button(
+                onClick = { onSelectLanguage(lang) },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(40.dp),
+                shape = RoundedCornerShape(10.dp),
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                    containerColor = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                    contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            ) {
+                Text(
+                    text = "${lang.flagEmoji} ${lang.label}",
+                    fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium
+                )
+            }
+        }
+    }
+}
 
 @Composable
 fun TypingTopMetricsBar(

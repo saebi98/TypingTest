@@ -45,12 +45,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.typingtest.korean.data.DashboardSummary
+import com.typingtest.korean.data.TypingLanguage
+import com.typingtest.korean.ui.components.LanguageSelectorRow
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     summary: DashboardSummary,
+    selectedLanguage: TypingLanguage,
+    onSelectLanguage: (TypingLanguage) -> Unit,
     onNavigatePosition: () -> Unit,
     onNavigateWord: () -> Unit,
     onNavigateShortText: () -> Unit,
@@ -58,6 +62,8 @@ fun HomeScreen(
     onNavigateAcidRain: () -> Unit,
     onNavigateStats: () -> Unit
 ) {
+    val isKorean = selectedLanguage == TypingLanguage.KOREAN
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -70,7 +76,7 @@ fun HomeScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "한글 타자 마스터",
+                            text = "한/영 타자 마스터",
                             fontWeight = FontWeight.ExtraBold
                         )
                     }
@@ -89,6 +95,12 @@ fun HomeScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            // 한/영 언어 전환 탭
+            LanguageSelectorRow(
+                selectedLanguage = selectedLanguage,
+                onSelectLanguage = onSelectLanguage
+            )
+
             // 상단 내 타자 요약 히어로 카드
             HeroSummaryBanner(
                 summary = summary,
@@ -96,7 +108,7 @@ fun HomeScreen(
             )
 
             Text(
-                text = "단계별 타자 연습",
+                text = "${selectedLanguage.flagEmoji} ${selectedLanguage.label} 단계별 연습",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(top = 4.dp)
@@ -109,7 +121,7 @@ fun HomeScreen(
             ) {
                 ModeCard(
                     title = "자리 연습",
-                    subtitle = "자음·모음 손가락 위치 기초",
+                    subtitle = if (isKorean) "자음·모음 손가락 위치 기초" else "QWERTY Home·Top·Bottom 기초",
                     badge = "4단계 과정",
                     icon = Icons.Default.Keyboard,
                     accentColor = Color(0xFF2563EB),
@@ -118,7 +130,7 @@ fun HomeScreen(
                 )
                 ModeCard(
                     title = "낱말 연습",
-                    subtitle = "초·중·고급 어휘 및 겹받침",
+                    subtitle = if (isKorean) "초·중·고급 어휘 및 겹받침" else "초·중·고급 필수 영단어 120선",
                     badge = "120+ 단어",
                     icon = Icons.Default.Spellcheck,
                     accentColor = Color(0xFF059669),
@@ -133,7 +145,7 @@ fun HomeScreen(
             ) {
                 ModeCard(
                     title = "짧은 글 연습",
-                    subtitle = "속담·명언·아름다운 우리말",
+                    subtitle = if (isKorean) "속담·명언·아름다운 우리말" else "영어 속담·명언·유명 격언",
                     badge = "실전 문장",
                     icon = Icons.Default.ShortText,
                     accentColor = Color(0xFFD97706),
@@ -142,7 +154,7 @@ fun HomeScreen(
                 )
                 ModeCard(
                     title = "긴 글 연습",
-                    subtitle = "별 헤는 밤·소나기 등 명작",
+                    subtitle = if (isKorean) "별 헤는 밤·소나기 등 명작" else "Robert Frost·Shakespeare 등 명작",
                     badge = "문학 5선",
                     icon = Icons.Default.MenuBook,
                     accentColor = Color(0xFF7C3AED),
@@ -160,9 +172,13 @@ fun HomeScreen(
 
             // 산성비 타자 디펜스 게임 배너
             WideFeatureCard(
-                title = "산성비 타자 디펜스 게임",
-                subtitle = "하늘에서 내려오는 한글 단어를 바닥에 닿기 전에 빠르게 입력해 제거하세요! (특수 아이템 단어 포함)",
-                badgeText = if (summary.bestAcidRainScore > 0) "최고 점수 ${summary.bestAcidRainScore}점" else "NEW 미니게임",
+                title = "산성비 타자 디펜스 (${selectedLanguage.shortLabel})",
+                subtitle = if (isKorean) {
+                    "하늘에서 내려오는 한글 단어를 바닥에 닿기 전에 빠르게 입력해 제거하세요! (특수 아이템 단어 포함)"
+                } else {
+                    "하늘에서 내려오는 영단어를 바닥에 닿기 전에 빠르게 타이핑해 제거하세요! (특수 아이템 단어 포함)"
+                },
+                badgeText = if (summary.bestAcidRainScore > 0) "최고 점수 ${summary.bestAcidRainScore}점" else "한/영 미니게임",
                 icon = Icons.Default.SportsEsports,
                 gradientColors = listOf(Color(0xFF0F766E), Color(0xFF0284C7)),
                 onClick = onNavigateAcidRain
@@ -197,7 +213,7 @@ fun HomeScreen(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "스마트폰 터치 키보드(쿼티·천지인)와 외부 블루투스 물리 키보드를 모두 지원합니다. 자리 연습에서는 내장 두벌식 가상 키보드로 직접 터치 연습도 가능합니다.",
+                        text = "한글 두벌식과 영문 QWERTY 자판 가이드를 모두 지원하며, 스마트폰 터치 키보드와 블루투스 물리 키보드 모두 사용할 수 있습니다.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -234,7 +250,7 @@ private fun HeroSummaryBanner(
             ) {
                 Column {
                     Text(
-                        text = "나의 한글 타자 실력 요약",
+                        text = "나의 타자 실력 요약",
                         color = Color.White.copy(alpha = 0.85f),
                         style = MaterialTheme.typography.labelLarge
                     )

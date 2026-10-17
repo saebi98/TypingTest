@@ -6,10 +6,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -53,9 +51,11 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.typingtest.korean.data.ContentRepository
+import com.typingtest.korean.data.TypingLanguage
 import com.typingtest.korean.data.TypingMode
 import com.typingtest.korean.engine.HangulEngine
 import com.typingtest.korean.ui.components.ColoredTargetText
+import com.typingtest.korean.ui.components.LanguageSelectorRow
 import com.typingtest.korean.ui.components.PracticeResultDialog
 import com.typingtest.korean.ui.components.TypingTopMetricsBar
 import kotlinx.coroutines.delay
@@ -63,27 +63,30 @@ import kotlinx.coroutines.delay
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LongTextScreen(
+    initialLanguage: TypingLanguage = TypingLanguage.KOREAN,
+    onLanguageChange: (TypingLanguage) -> Unit = {},
     onSaveRecord: (TypingMode, String, Int, Int, Float, Int, Int) -> Unit,
     onBack: () -> Unit
 ) {
-    val works = ContentRepository.longTextWorks
-    var selectedWorkIdx by remember { mutableIntStateOf(0) }
+    var language by remember { mutableStateOf(initialLanguage) }
+    val works = remember(language) { ContentRepository.getLongTextWorks(language) }
+    var selectedWorkIdx by remember(language) { mutableIntStateOf(0) }
     val currentWork = works[selectedWorkIdx]
 
-    var currentLineIdx by remember(selectedWorkIdx) { mutableIntStateOf(0) }
-    var currentInput by remember(selectedWorkIdx) { mutableStateOf("") }
+    var currentLineIdx by remember(language, selectedWorkIdx) { mutableIntStateOf(0) }
+    var currentInput by remember(language, selectedWorkIdx) { mutableStateOf("") }
 
-    var sessionStartMillis by remember(selectedWorkIdx) { mutableLongStateOf(0L) }
-    var elapsedMillis by remember(selectedWorkIdx) { mutableLongStateOf(0L) }
-    var completedStrokes by remember(selectedWorkIdx) { mutableIntStateOf(0) }
-    var totalTypedStrokes by remember(selectedWorkIdx) { mutableIntStateOf(0) }
-    var maxCpm by remember(selectedWorkIdx) { mutableIntStateOf(0) }
-    var showResultDialog by remember(selectedWorkIdx) { mutableStateOf(false) }
+    var sessionStartMillis by remember(language, selectedWorkIdx) { mutableLongStateOf(0L) }
+    var elapsedMillis by remember(language, selectedWorkIdx) { mutableLongStateOf(0L) }
+    var completedStrokes by remember(language, selectedWorkIdx) { mutableIntStateOf(0) }
+    var totalTypedStrokes by remember(language, selectedWorkIdx) { mutableIntStateOf(0) }
+    var maxCpm by remember(language, selectedWorkIdx) { mutableIntStateOf(0) }
+    var showResultDialog by remember(language, selectedWorkIdx) { mutableStateOf(false) }
 
     val focusRequester = remember { FocusRequester() }
     val currentLine = currentWork.lines.getOrElse(currentLineIdx) { "" }
 
-    LaunchedEffect(selectedWorkIdx) {
+    LaunchedEffect(language, selectedWorkIdx) {
         runCatching { focusRequester.requestFocus() }
     }
 
@@ -128,7 +131,7 @@ fun LongTextScreen(
         val durSec = (elapsedMillis / 1000L).toInt().coerceAtLeast(1)
         onSaveRecord(
             TypingMode.LONG_TEXT,
-            "${currentWork.title} (${currentWork.author})",
+            "[${language.shortLabel}] ${currentWork.title} (${currentWork.author})",
             finalEval.cpm,
             finalMax,
             finalEval.accuracyPercent,
@@ -154,7 +157,6 @@ fun LongTextScreen(
         }
     }
 
-    // 현재 줄이 정확히 일치하면 자동으로 다음 줄로 이동
     LaunchedEffect(currentInput, currentLine) {
         if (currentLine.isNotEmpty() && currentInput == currentLine && !showResultDialog) {
             delay(180L)
@@ -197,7 +199,7 @@ fun LongTextScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("긴 글 연습", fontWeight = FontWeight.Bold) },
+                title = { Text("긴 글 연습 (${language.shortLabel})", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로")
@@ -225,6 +227,14 @@ fun LongTextScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            LanguageSelectorRow(
+                selectedLanguage = language,
+                onSelectLanguage = {
+                    language = it
+                    onLanguageChange(it)
+                }
+            )
+
             // 문학 작품 선택 가로 스크롤 칩
             Row(
                 modifier = Modifier
@@ -281,12 +291,10 @@ fun LongTextScreen(
                         )
                     }
 
-                    // 현재 페이지의 줄 표시
                     for (lineIdx in pageStartIdx until pageEndIdx) {
                         val lineText = currentWork.lines[lineIdx]
                         when {
                             lineIdx < currentLineIdx -> {
-                                // 이미 완료한 줄
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -302,7 +310,6 @@ fun LongTextScreen(
                                 }
                             }
                             lineIdx == currentLineIdx -> {
-                                // 현재 입력 중인 줄 + 바로 아래 입력창
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -331,7 +338,6 @@ fun LongTextScreen(
                                 }
                             }
                             else -> {
-                                // 아직 입력 전인 다음 줄
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -382,7 +388,7 @@ fun LongTextScreen(
         )
         PracticeResultDialog(
             title = "긴 글 연습 결과",
-            subtitle = "『${currentWork.title}』 (${currentWork.author})",
+            subtitle = "[${language.shortLabel}] 『${currentWork.title}』 (${currentWork.author})",
             avgCpm = finalEval.cpm,
             maxCpm = maxOf(maxCpm, finalEval.cpm),
             accuracy = finalEval.accuracyPercent,

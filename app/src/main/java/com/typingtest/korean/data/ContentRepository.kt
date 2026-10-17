@@ -1,5 +1,10 @@
 package com.typingtest.korean.data
 
+enum class TypingLanguage(val label: String, val shortLabel: String, val flagEmoji: String) {
+    KOREAN("한글 타자", "한글", "🇰🇷"),
+    ENGLISH("영문 타자", "영문", "🇺🇸")
+}
+
 data class PositionStage(
     val id: Int,
     val title: String,
@@ -8,9 +13,9 @@ data class PositionStage(
 )
 
 enum class WordDifficulty(val label: String, val description: String) {
-    BEGINNER("초급 단어", "받침이 적고 치기 쉬운 2~3글자 기본 어휘"),
-    INTERMEDIATE("중급 단어", "다양한 받침과 일상 생활 필수 어휘"),
-    ADVANCED("고급 단어", "겹받침·복합모음·사자성어 등 고난도 어휘")
+    BEGINNER("초급 단어", "기초 어휘 및 짧은 단어 위주"),
+    INTERMEDIATE("중급 단어", "일상 생활 및 필수 어휘"),
+    ADVANCED("고급 단어", "고난도 복합 어휘 및 전문 용어")
 }
 
 data class LongTextWork(
@@ -23,7 +28,11 @@ data class LongTextWork(
 
 object ContentRepository {
 
-    val positionStages: List<PositionStage> = listOf(
+    // =========================================================================
+    // 1. 자리 연습 (한글 & 영문)
+    // =========================================================================
+
+    val koreanPositionStages: List<PositionStage> = listOf(
         PositionStage(
             id = 1,
             title = "1단계: 기본 자리 (중단)",
@@ -71,36 +80,125 @@ object ContentRepository {
         )
     )
 
-    private val beginnerWords = listOf(
+    val englishPositionStages: List<PositionStage> = listOf(
+        PositionStage(
+            id = 1,
+            title = "Stage 1: 기본 자리 (Home Row)",
+            subtitle = "a s d f g / h j k l",
+            items = listOf(
+                "a", "s", "d", "f", "g", "h", "j", "k", "l",
+                "as", "sad", "dad", "lad", "ask", "all", "fall", "hall",
+                "glad", "flag", "flak", "half", "dash", "sash", "salad", "glass"
+            )
+        ),
+        PositionStage(
+            id = 2,
+            title = "Stage 2: 윗자리 연습 (Top Row)",
+            subtitle = "q w e r t / y u i o p",
+            items = listOf(
+                "q", "w", "e", "r", "t", "y", "u", "i", "o", "p",
+                "tree", "water", "power", "quite", "write", "poet", "tower", "route",
+                "quote", "pure", "wire", "type", "your", "prior", "report", "quiet"
+            )
+        ),
+        PositionStage(
+            id = 3,
+            title = "Stage 3: 아랫자리 연습 (Bottom Row)",
+            subtitle = "z x c v b / n m",
+            items = listOf(
+                "z", "x", "c", "v", "b", "n", "m",
+                "cab", "van", "man", "ban", "can", "zen", "box", "fox",
+                "brave", "vivid", "magic", "novel", "music", "ocean", "cabin", "zebra"
+            )
+        ),
+        PositionStage(
+            id = 4,
+            title = "Stage 4: 대소문자 혼합 (Shift & Capitals)",
+            subtitle = "A~Z 대문자 및 종합 단어",
+            items = listOf(
+                "A", "S", "D", "F", "J", "K", "L", "Q", "W", "E", "R", "T",
+                "Seoul", "Korea", "English", "Android", "Kotlin", "Compose",
+                "Dream", "Future", "Nature", "Galaxy", "Victory", "Harmony",
+                "Rainbow", "Horizon", "Freedom", "Journey", "Miracle", "Success"
+            )
+        )
+    )
+
+    fun getPositionStages(language: TypingLanguage): List<PositionStage> =
+        when (language) {
+            TypingLanguage.KOREAN -> koreanPositionStages
+            TypingLanguage.ENGLISH -> englishPositionStages
+        }
+
+    // =========================================================================
+    // 2. 낱말 연습 (한글 & 영문)
+    // =========================================================================
+
+    private val koreanBeginnerWords = listOf(
         "하늘", "바다", "구름", "나무", "바람", "소나무", "무지개", "민들레", "진달래", "코스모스",
         "우유", "사과", "포도", "바나나", "수박", "토마토", "옥수수", "고구마", "감자", "오이",
         "기차", "자동차", "비행기", "자전거", "버스", "피아노", "기타", "라디오", "카메라", "시계",
         "학교", "교실", "선생님", "친구", "공책", "연필", "지우개", "가방", "모자", "구두"
     )
 
-    private val intermediateWords = listOf(
+    private val koreanIntermediateWords = listOf(
         "대한민국", "무궁화", "한라산", "백두산", "독도", "거북선", "훈민정음", "세종대왕", "이순신", "한글날",
         "도서관", "박물관", "미술관", "운동장", "수영장", "정류장", "지하철", "고속도로", "횡단보도", "신호등",
         "컴퓨터", "스마트폰", "키보드", "모니터", "인터넷", "인공지능", "프로그래밍", "알고리즘", "데이터", "네트워크",
         "행복", "희망", "사랑", "우정", "배려", "존중", "약속", "성실", "열정", "도전"
     )
 
-    private val advancedWords = listOf(
+    private val koreanAdvancedWords = listOf(
         "맑은하늘", "밝은미소", "삶의지혜", "흙냄새", "값진노력", "앉은자리", "끊임없이", "읊조리다", "젊은이", "넓은바다",
         "화기애애", "금상첨화", "다다익선", "동고동락", "대기만성", "일취월장", "유비무환", "온고지신", "청출어람", "설상가상",
         "천고마비", "춘하추동", "사필귀정", "자승자박", "일석이조", "우공이산", "백절불굴", "진인사대천명", "고진감래", "괄목상대",
         "정보통신", "지속가능성", "생태계보전", "기후변화", "신재생에너지", "우주정거장", "양자컴퓨터", "반도체공정", "자율주행", "메타버스"
     )
 
-    fun getWordsByDifficulty(difficulty: WordDifficulty): List<String> {
-        return when (difficulty) {
-            WordDifficulty.BEGINNER -> beginnerWords.shuffled()
-            WordDifficulty.INTERMEDIATE -> intermediateWords.shuffled()
-            WordDifficulty.ADVANCED -> advancedWords.shuffled()
+    private val englishBeginnerWords = listOf(
+        "apple", "water", "smile", "cloud", "music", "happy", "river", "green", "bread", "train",
+        "house", "light", "world", "heart", "dream", "peace", "ocean", "beach", "stone", "flame",
+        "chair", "table", "phone", "watch", "paper", "brush", "plant", "tiger", "eagle", "whale",
+        "lemon", "melon", "grape", "peach", "berry", "honey", "sugar", "spoon", "plate", "glass"
+    )
+
+    private val englishIntermediateWords = listOf(
+        "computer", "keyboard", "internet", "language", "mountain", "sunshine", "adventure", "knowledge", "universe", "calendar",
+        "hospital", "library", "museum", "festival", "airplane", "bicycle", "umbrella", "backpack", "notebook", "painting",
+        "creative", "positive", "peaceful", "friendly", "grateful", "faithful", "solution", "progress", "memories", "treasure",
+        "software", "database", "security", "network", "wireless", "platform", "compiler", "variable", "function", "terminal"
+    )
+
+    private val englishAdvancedWords = listOf(
+        "algorithm", "architecture", "perseverance", "intelligence", "sustainability", "constellation", "encyclopedia", "collaboration", "transformation", "determination",
+        "extraordinary", "philosophical", "unforgettable", "revolutionary", "infrastructure", "biodiversity", "microprocessor", "cryptography", "virtualization", "authentication",
+        "consciousness", "magnificent", "serendipity", "entrepreneur", "independence", "productivity", "optimization", "acceleration", "imagination", "achievement",
+        "responsibility", "communication", "understanding", "appreciation", "opportunity", "breakthrough", "civilization", "astrophysics", "nanotechnology", "neuroscience"
+    )
+
+    fun getWordsByDifficulty(
+        difficulty: WordDifficulty,
+        language: TypingLanguage = TypingLanguage.KOREAN
+    ): List<String> {
+        return when (language) {
+            TypingLanguage.KOREAN -> when (difficulty) {
+                WordDifficulty.BEGINNER -> koreanBeginnerWords.shuffled()
+                WordDifficulty.INTERMEDIATE -> koreanIntermediateWords.shuffled()
+                WordDifficulty.ADVANCED -> koreanAdvancedWords.shuffled()
+            }
+            TypingLanguage.ENGLISH -> when (difficulty) {
+                WordDifficulty.BEGINNER -> englishBeginnerWords.shuffled()
+                WordDifficulty.INTERMEDIATE -> englishIntermediateWords.shuffled()
+                WordDifficulty.ADVANCED -> englishAdvancedWords.shuffled()
+            }
         }
     }
 
-    val shortSentences: List<String> = listOf(
+    // =========================================================================
+    // 3. 짧은 글 연습 (한글 & 영문)
+    // =========================================================================
+
+    val koreanShortSentences: List<String> = listOf(
         "가는 말이 고와야 오는 말이 곱다.",
         "천 리 길도 한 걸음부터 시작된다.",
         "시작이 반이라는 말을 믿고 나아가자.",
@@ -130,20 +228,53 @@ object ContentRepository {
         "한글은 세계에서 가장 과학적인 문자입니다.",
         "맑은 바람이 불어오는 가을 하늘이 참 높습니다.",
         "따뜻한 차 한 잔과 함께 여유로운 하루를 보내세요.",
-        "정확하게 치는 습관이 결국 가장 빠른 타자를 만듭니다.",
-        "급할수록 돌아가라는 옛말을 마음속에 새기자.",
-        "꿈을 계속 간직하고 있으면 반드시 실현할 때가 온다.",
-        "배움에는 끝이 없으며 늘 겸손한 자세가 필요하다.",
-        "진정한 친구는 어려울 때 곁을 지켜주는 사람이다.",
-        "자연을 사랑하고 보호하는 일은 우리의 미래를 지키는 길이다.",
-        "긍정적인 생각은 어떤 어려움도 이겨낼 힘을 준다.",
-        "매일 조금씩 성장하는 자신을 칭찬해 주세요.",
-        "별을 보려면 어두운 밤하늘을 올려다보아야 한다.",
-        "물이 깊을수록 소리가 나지 않는 법이다.",
-        "아름다운 우리말을 바르고 곱게 사용합시다."
+        "정확하게 치는 습관이 결국 가장 빠른 타자를 만듭니다."
     )
 
-    val longTextWorks: List<LongTextWork> = listOf(
+    val englishShortSentences: List<String> = listOf(
+        "The quick brown fox jumps over the lazy dog.",
+        "Actions speak louder than words.",
+        "Practice makes perfect in every skill.",
+        "Where there is a will, there is a way.",
+        "A journey of a thousand miles begins with a single step.",
+        "The early bird catches the worm.",
+        "Knowledge is power and kindness is strength.",
+        "Rome was not built in a day.",
+        "Every cloud has a silver lining.",
+        "Honesty is the best policy in life.",
+        "Time waits for no one, so treasure today.",
+        "Fall seven times and stand up eight.",
+        "Success is the sum of small efforts repeated daily.",
+        "Stay hungry, stay foolish, and keep learning.",
+        "Believe you can and you are halfway there.",
+        "Simplicity is the ultimate sophistication.",
+        "To be or not to be, that is the question.",
+        "All that glitters is not gold.",
+        "Better late than never, but never late is better.",
+        "Fortune favors the bold and prepared mind.",
+        "Reading is to the mind what exercise is to the body.",
+        "You never know what you can do until you try.",
+        "Great oaks from little acorns grow.",
+        "No pain, no gain on the road to mastery.",
+        "Accuracy always comes before typing speed.",
+        "Look before you leap into a new challenge.",
+        "A friend in need is a friend indeed.",
+        "Laughter is the shortest distance between two people.",
+        "Stars cannot shine without darkness.",
+        "Make each day your masterpiece."
+    )
+
+    fun getShortSentences(language: TypingLanguage): List<String> =
+        when (language) {
+            TypingLanguage.KOREAN -> koreanShortSentences
+            TypingLanguage.ENGLISH -> englishShortSentences
+        }
+
+    // =========================================================================
+    // 4. 긴 글 연습 (한글 & 영문)
+    // =========================================================================
+
+    val koreanLongTextWorks: List<LongTextWork> = listOf(
         LongTextWork(
             id = "star_night",
             title = "별 헤는 밤",
@@ -221,11 +352,7 @@ object ContentRepository {
                 "이것을 얼음 속에서 불러내는 것이 따뜻한 봄바람이다.",
                 "인생에 따뜻한 봄바람을 불어 보내는 것은 청춘의 끓는 피다.",
                 "청춘의 피가 뜨거운지라, 인간의 동산에는 사랑의 풀이 돋고, 이상의 꽃이 피고,",
-                "희망의 놀이 뜨고, 열락의 새가 운다.",
-                "사랑의 풀이 없으면 인간은 사막이다.",
-                "오아시스도 없는 사막이다. 보이는 끝까지 찾아다녀도 목숨이 있는 때까지 방황하여도",
-                "보이는 것은 거친 모래뿐일 것이다.",
-                "이상의 꽃이 없으면 쓸쓸한 인간에 남는 것은 영락과 부패뿐이다."
+                "희망의 놀이 뜨고, 열락의 새가 운다."
             )
         ),
         LongTextWork(
@@ -237,10 +364,6 @@ object ContentRepository {
                 "여름장이란 애시당초에 글러서, 해는 아직 중천에 있건만 장판은 벌써 쓸쓸하고 더운 햇발이 벌여 놓았던 전 휘장 밑으로 등줄기를 훅훅 볶는다.",
                 "마을 사람들은 거지반 돌아간 뒤요, 팔리지 못한 나뭇군패가 길거리에 궁싯거리고들 있으나,",
                 "석유병이나 받고 고깃마리나 사면 족할 이 축들을 바라고 언제까지든지 버티고 있을 법은 없다.",
-                "춥춥스럽게 날아드는 파리떼도 장난군 각다귀들도 귀찮다.",
-                "얼금뱅이요 왼손잡이인 드팀전의 허 생원은 기어코 동업의 조선달을 낚아보았다.",
-                "그만 거둘까? 잘 생각했네. 봉평장에서 한 번이나 흐뭇하게 사본 일 있었을까.",
-                "내일 대화장에서나 한몫 벌어야겠네.",
                 "이지러는 졌으나 보름을 갓 지난 달은 부드러운 빛을 흐뭇이 흘리고 있다.",
                 "대화까지는 팔십 리의 밤길, 고개를 둘이나 넘고 개울을 하나 건너고 벌판과 산길을 걸어야 된다.",
                 "길은 지금 긴 산허리에 걸려 있다. 밤중을 지난 무렵인지 죽은 듯이 고요한 속에서 짐승 같은 달의 숨소리가 손에 잡힐 듯이 들리며,",
@@ -262,18 +385,158 @@ object ContentRepository {
                 "엄마야 누나야 강변 살자. 뜰에는 반짝이는 금모래빛,",
                 "뒷문 밖에는 갈잎의 노래, 엄마야 누나야 강변 살자.",
                 "산에는 꽃 피네 꽃이 피네 갈 봄 여름 없이 꽃이 피네.",
-                "산에 산에 피는 꽃은 저만치 혼자서 피어 있네.",
-                "산에서 우는 작은 새요 꽃이 좋아 산에서 사노라네.",
-                "산에는 꽃 지네 꽃이 지네 갈 봄 여름 없이 꽃이 지네."
+                "산에 산에 피는 꽃은 저만치 혼자서 피어 있네."
             )
         )
     )
 
-    val acidRainWordPool: List<String> = (beginnerWords + intermediateWords + listOf(
+    val englishLongTextWorks: List<LongTextWork> = listOf(
+        LongTextWork(
+            id = "road_not_taken",
+            title = "The Road Not Taken",
+            author = "Robert Frost",
+            category = "Classic Poetry",
+            lines = listOf(
+                "Two roads diverged in a yellow wood,",
+                "And sorry I could not travel both",
+                "And be one traveler, long I stood",
+                "And looked down one as far as I could",
+                "To where it bent in the undergrowth;",
+                "Then took the other, as just as fair,",
+                "And having perhaps the better claim,",
+                "Because it was grassy and wanted wear;",
+                "Though as for that the passing there",
+                "Had worn them really about the same,",
+                "And both that morning equally lay",
+                "In leaves no step had trodden black.",
+                "Oh, I kept the first for another day!",
+                "Yet knowing how way leads on to way,",
+                "I doubted if I should ever come back.",
+                "I shall be telling this with a sigh",
+                "Somewhere ages and ages hence:",
+                "Two roads diverged in a wood, and I,",
+                "I took the one less traveled by,",
+                "And that has made all the difference."
+            )
+        ),
+        LongTextWork(
+            id = "gettysburg",
+            title = "The Gettysburg Address",
+            author = "Abraham Lincoln",
+            category = "Historic Speech",
+            lines = listOf(
+                "Four score and seven years ago our fathers brought forth on this continent, a new nation,",
+                "conceived in Liberty, and dedicated to the proposition that all men are created equal.",
+                "Now we are engaged in a great civil war, testing whether that nation,",
+                "or any nation so conceived and so dedicated, can long endure.",
+                "We are met on a great battle-field of that war.",
+                "We have come to dedicate a portion of that field, as a final resting place",
+                "for those who here gave their lives that that nation might live.",
+                "It is altogether fitting and proper that we should do this.",
+                "But, in a larger sense, we can not dedicate, we can not consecrate, we can not hallow this ground.",
+                "The brave men, living and dead, who struggled here, have consecrated it,",
+                "far above our poor power to add or detract.",
+                "The world will little note, nor long remember what we say here,",
+                "but it can never forget what they did here.",
+                "It is for us the living, rather, to be dedicated here to the unfinished work",
+                "which they who fought here have thus far so nobly advanced.",
+                "that this nation, under God, shall have a new birth of freedom,",
+                "and that government of the people, by the people, for the people, shall not perish from the earth."
+            )
+        ),
+        LongTextWork(
+            id = "sonnet_18",
+            title = "Sonnet 18",
+            author = "William Shakespeare",
+            category = "Classic Poetry",
+            lines = listOf(
+                "Shall I compare thee to a summer's day?",
+                "Thou art more lovely and more temperate:",
+                "Rough winds do shake the darling buds of May,",
+                "And summer's lease hath all too short a date:",
+                "Sometime too hot the eye of heaven shines,",
+                "And often is his gold complexion dimmed;",
+                "And every fair from fair sometime declines,",
+                "By chance, or nature's changing course, untrimmed;",
+                "But thy eternal summer shall not fade,",
+                "Nor lose possession of that fair thou owest;",
+                "Nor shall Death brag thou wanderest in his shade,",
+                "When in eternal lines to time thou growest:",
+                "So long as men can breathe, or eyes can see,",
+                "So long lives this, and this gives life to thee."
+            )
+        ),
+        LongTextWork(
+            id = "hope_feathers",
+            title = "Hope is the Thing with Feathers",
+            author = "Emily Dickinson",
+            category = "Classic Poetry",
+            lines = listOf(
+                "Hope is the thing with feathers",
+                "That perches in the soul,",
+                "And sings the tune without the words,",
+                "And never stops at all,",
+                "And sweetest in the gale is heard;",
+                "And sore must be the storm",
+                "That could abash the little bird",
+                "That kept so many warm.",
+                "I have heard it in the chillest land,",
+                "And on the strangest sea;",
+                "Yet, never, in extremity,",
+                "It asked a crumb of me."
+            )
+        ),
+        LongTextWork(
+            id = "if_kipling",
+            title = "If (Excerpt)",
+            author = "Rudyard Kipling",
+            category = "Classic Poetry",
+            lines = listOf(
+                "If you can keep your head when all about you",
+                "Are losing theirs and blaming it on you,",
+                "If you can trust yourself when all men doubt you,",
+                "But make allowance for their doubting too;",
+                "If you can wait and not be tired by waiting,",
+                "Or being lied about, do not deal in lies,",
+                "Or being hated, do not give way to hating,",
+                "And yet do not look too good, nor talk too wise:",
+                "If you can dream and not make dreams your master;",
+                "If you can think and not make thoughts your aim;",
+                "If you can meet with Triumph and Disaster",
+                "And treat those two impostors just the same;",
+                "Yours is the Earth and everything that is in it."
+            )
+        )
+    )
+
+    fun getLongTextWorks(language: TypingLanguage): List<LongTextWork> =
+        when (language) {
+            TypingLanguage.KOREAN -> koreanLongTextWorks
+            TypingLanguage.ENGLISH -> englishLongTextWorks
+        }
+
+    // =========================================================================
+    // 5. 산성비 단어 풀 (한글 & 영문)
+    // =========================================================================
+
+    private val koreanAcidRainPool: List<String> = (koreanBeginnerWords + koreanIntermediateWords + listOf(
         "은하수", "별똥별", "인공위성", "우주선", "북극성", "오리온", "안드로메다",
         "소나기", "번개", "천둥", "눈보라", "아지랑이", "새벽별", "노을빛",
         "비빔밥", "불고기", "김치찌개", "된장찌개", "떡볶이", "삼계탕", "갈비탕",
         "거북이", "다람쥐", "산토끼", "부엉이", "독수리", "돌고래", "호랑이",
         "도전정신", "백절불굴", "일취월장", "금상첨화", "유비무환", "청출어람"
     )).distinct()
+
+    private val englishAcidRainPool: List<String> = (englishBeginnerWords + englishIntermediateWords + listOf(
+        "galaxy", "meteor", "planet", "rocket", "nebula", "cosmos", "horizon",
+        "thunder", "tornado", "rainbow", "glacier", "volcano", "breeze", "sunrise",
+        "dolphin", "panther", "falcon", "penguin", "leopard", "cheetah", "gazelle",
+        "courage", "victory", "harmony", "freedom", "justice", "passion", "destiny"
+    )).distinct()
+
+    fun getAcidRainWordPool(language: TypingLanguage): List<String> =
+        when (language) {
+            TypingLanguage.KOREAN -> koreanAcidRainPool
+            TypingLanguage.ENGLISH -> englishAcidRainPool
+        }
 }

@@ -89,4 +89,26 @@ class HangulEngineTest {
         assertFalse(eval.charStatuses.any { it != CharMatchStatus.MATCHED })
         assertEquals(100f, eval.accuracyPercent, 0.01f)
     }
+
+    @Test
+    fun testEnglishEvaluationAndShift() {
+        val eval = HangulEngine.evaluate(
+            target = "Korea",
+            input = "",
+            elapsedMillis = 1000L
+        )
+        assertEquals('K', eval.nextRequiredJamo)
+        assertTrue(eval.requiresShift)
+        assertEquals('k', HangulEngine.getBaseKeyForJamo('K'))
+
+        val eval2 = HangulEngine.evaluate(
+            target = "Korea",
+            input = "Ko",
+            elapsedMillis = 1000L
+        )
+        assertEquals(CharMatchStatus.MATCHED, eval2.charStatuses[0])
+        assertEquals(CharMatchStatus.MATCHED, eval2.charStatuses[1])
+        assertEquals('r', eval2.nextRequiredJamo)
+        assertFalse(eval2.requiresShift)
+    }
 }

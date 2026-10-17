@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -52,11 +51,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.typingtest.korean.data.ContentRepository
+import com.typingtest.korean.data.TypingLanguage
 import com.typingtest.korean.data.TypingMode
 import com.typingtest.korean.data.WordDifficulty
 import com.typingtest.korean.engine.HangulEngine
 import com.typingtest.korean.ui.components.ColoredTargetText
 import com.typingtest.korean.ui.components.DubeolsikKeyboard
+import com.typingtest.korean.ui.components.LanguageSelectorRow
 import com.typingtest.korean.ui.components.PracticeResultDialog
 import com.typingtest.korean.ui.components.TypingTopMetricsBar
 import kotlinx.coroutines.delay
@@ -64,22 +65,25 @@ import kotlinx.coroutines.delay
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WordPracticeScreen(
+    initialLanguage: TypingLanguage = TypingLanguage.KOREAN,
+    onLanguageChange: (TypingLanguage) -> Unit = {},
     onSaveRecord: (TypingMode, String, Int, Int, Float, Int, Int) -> Unit,
     onBack: () -> Unit
 ) {
+    var language by remember { mutableStateOf(initialLanguage) }
     var difficulty by remember { mutableStateOf(WordDifficulty.BEGINNER) }
-    var words by remember(difficulty) {
-        mutableStateOf(ContentRepository.getWordsByDifficulty(difficulty).take(20))
+    var words by remember(language, difficulty) {
+        mutableStateOf(ContentRepository.getWordsByDifficulty(difficulty, language).take(20))
     }
-    var currentIndex by remember(difficulty) { mutableIntStateOf(0) }
-    var currentInput by remember(difficulty) { mutableStateOf("") }
+    var currentIndex by remember(language, difficulty) { mutableIntStateOf(0) }
+    var currentInput by remember(language, difficulty) { mutableStateOf("") }
 
-    var startTimeMillis by remember(difficulty) { mutableLongStateOf(0L) }
-    var elapsedMillis by remember(difficulty) { mutableLongStateOf(0L) }
-    var completedStrokes by remember(difficulty) { mutableIntStateOf(0) }
-    var totalTypedStrokes by remember(difficulty) { mutableIntStateOf(0) }
-    var maxCpm by remember(difficulty) { mutableIntStateOf(0) }
-    var showResultDialog by remember(difficulty) { mutableStateOf(false) }
+    var startTimeMillis by remember(language, difficulty) { mutableLongStateOf(0L) }
+    var elapsedMillis by remember(language, difficulty) { mutableLongStateOf(0L) }
+    var completedStrokes by remember(language, difficulty) { mutableIntStateOf(0) }
+    var totalTypedStrokes by remember(language, difficulty) { mutableIntStateOf(0) }
+    var maxCpm by remember(language, difficulty) { mutableIntStateOf(0) }
+    var showResultDialog by remember(language, difficulty) { mutableStateOf(false) }
     var showGuideKeyboard by remember { mutableStateOf(true) }
 
     val focusRequester = remember { FocusRequester() }
@@ -136,7 +140,7 @@ fun WordPracticeScreen(
             val durSec = (elapsedMillis / 1000L).toInt().coerceAtLeast(1)
             onSaveRecord(
                 TypingMode.WORD,
-                difficulty.label,
+                "[${language.shortLabel}] ${difficulty.label}",
                 finalEval.cpm,
                 finalMax,
                 finalEval.accuracyPercent,
@@ -150,7 +154,6 @@ fun WordPracticeScreen(
         }
     }
 
-    // 단어가 정확히 완성되면 짧은 딜레이 후 자동 전환
     LaunchedEffect(currentInput, currentWord) {
         if (currentWord.isNotEmpty() && currentInput == currentWord && !showResultDialog) {
             delay(160L)
@@ -159,7 +162,7 @@ fun WordPracticeScreen(
     }
 
     fun resetSession() {
-        words = ContentRepository.getWordsByDifficulty(difficulty).take(20)
+        words = ContentRepository.getWordsByDifficulty(difficulty, language).take(20)
         currentIndex = 0
         currentInput = ""
         startTimeMillis = 0L
@@ -188,7 +191,7 @@ fun WordPracticeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("낱말 연습", fontWeight = FontWeight.Bold) },
+                title = { Text("낱말 연습 (${language.shortLabel})", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로")
@@ -211,6 +214,14 @@ fun WordPracticeScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            LanguageSelectorRow(
+                selectedLanguage = language,
+                onSelectLanguage = {
+                    language = it
+                    onLanguageChange(it)
+                }
+            )
+
             // 난이도 선택 칩
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -240,7 +251,7 @@ fun WordPracticeScreen(
                 progressFraction = currentIndex.toFloat() / words.size.coerceAtLeast(1)
             )
 
-            // 3단 낱말 표시 카드 (이전 단어 / 현재 단어 / 다음 단어)
+            // 3단 낱말 표시 카드
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(22.dp),
@@ -284,7 +295,7 @@ fun WordPracticeScreen(
                         ColoredTargetText(
                             target = currentWord,
                             statuses = evaluation.charStatuses,
-                            fontSize = 40.sp,
+                            fontSize = if (currentWord.length <= 8) 38.sp else 30.sp,
                             textAlign = TextAlign.Center
                         )
                     }
@@ -323,7 +334,11 @@ fun WordPracticeScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "두벌식 자판 가이드 & 터치 키패드 표시",
+                    text = if (language == TypingLanguage.KOREAN) {
+                        "두벌식 자판 가이드 & 터치 키패드 표시"
+                    } else {
+                        "QWERTY 자판 가이드 & 터치 키패드 표시"
+                    },
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Switch(
@@ -336,6 +351,7 @@ fun WordPracticeScreen(
                 DubeolsikKeyboard(
                     nextRequiredJamo = evaluation.nextRequiredJamo,
                     requiresShift = evaluation.requiresShift,
+                    language = language,
                     interactive = true,
                     showBottomActionRow = true,
                     onJamoClick = { jamo ->
@@ -362,7 +378,7 @@ fun WordPracticeScreen(
         )
         PracticeResultDialog(
             title = "낱말 연습 완주!",
-            subtitle = "${difficulty.label} (20단어)",
+            subtitle = "[${language.shortLabel}] ${difficulty.label} (20단어)",
             avgCpm = finalEval.cpm,
             maxCpm = maxOf(maxCpm, finalEval.cpm),
             accuracy = finalEval.accuracyPercent,

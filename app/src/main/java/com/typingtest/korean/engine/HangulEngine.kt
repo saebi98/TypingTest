@@ -219,7 +219,7 @@ object HangulEngine {
             ((totalMatchedStrokes * 60_000.0) / elapsedMillis.toDouble()).roundToInt().coerceAtMost(2000)
         }
 
-        val requiresShift = nextJamo != null && SHIFT_JAMO_MAP.containsKey(nextJamo)
+        val requiresShift = nextJamo != null && (SHIFT_JAMO_MAP.containsKey(nextJamo) || nextJamo in 'A'..'Z')
         val isCompleted = input == target && target.isNotEmpty()
 
         return TypingEvaluation(
@@ -237,9 +237,13 @@ object HangulEngine {
     }
 
     /**
-     * Shift가 필요한 쌍자음/이중모음인 경우 기본 키 자모를 반환합니다. (예: 'ㄲ' -> 'ㄱ')
+     * Shift가 필요한 쌍자음/이중모음 또는 영문 대문자인 경우 기본 키 문자를 반환합니다.
+     * 예: 'ㄲ' -> 'ㄱ', 'A' -> 'a'
      */
-    fun getBaseKeyForJamo(jamo: Char): Char = SHIFT_JAMO_MAP[jamo] ?: jamo
+    fun getBaseKeyForJamo(jamo: Char): Char {
+        if (jamo in 'A'..'Z') return jamo.lowercaseChar()
+        return SHIFT_JAMO_MAP[jamo] ?: jamo
+    }
 
     /**
      * 한글 IME 특성상 '바다'를 칠 때 '받'을 거쳐 '바다'가 되는 도깨비불(연음 조합) 현상까지

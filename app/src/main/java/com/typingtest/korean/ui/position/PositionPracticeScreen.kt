@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -51,10 +50,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.typingtest.korean.data.ContentRepository
+import com.typingtest.korean.data.TypingLanguage
 import com.typingtest.korean.data.TypingMode
 import com.typingtest.korean.engine.HangulEngine
 import com.typingtest.korean.ui.components.ColoredTargetText
 import com.typingtest.korean.ui.components.DubeolsikKeyboard
+import com.typingtest.korean.ui.components.LanguageSelectorRow
 import com.typingtest.korean.ui.components.PracticeResultDialog
 import com.typingtest.korean.ui.components.TypingTopMetricsBar
 import kotlinx.coroutines.delay
@@ -62,25 +63,28 @@ import kotlinx.coroutines.delay
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun PositionPracticeScreen(
+    initialLanguage: TypingLanguage = TypingLanguage.KOREAN,
+    onLanguageChange: (TypingLanguage) -> Unit = {},
     onSaveRecord: (TypingMode, String, Int, Int, Float, Int, Int) -> Unit,
     onBack: () -> Unit
 ) {
-    val stages = ContentRepository.positionStages
-    var selectedStageIdx by remember { mutableIntStateOf(0) }
+    var language by remember { mutableStateOf(initialLanguage) }
+    val stages = remember(language) { ContentRepository.getPositionStages(language) }
+    var selectedStageIdx by remember(language) { mutableIntStateOf(0) }
     val currentStage = stages[selectedStageIdx]
 
-    var targetItems by remember(selectedStageIdx) {
+    var targetItems by remember(language, selectedStageIdx) {
         mutableStateOf(currentStage.items.shuffled().take(25))
     }
-    var currentIndex by remember(selectedStageIdx) { mutableIntStateOf(0) }
-    var currentInput by remember(selectedStageIdx) { mutableStateOf("") }
+    var currentIndex by remember(language, selectedStageIdx) { mutableIntStateOf(0) }
+    var currentInput by remember(language, selectedStageIdx) { mutableStateOf("") }
 
-    var startTimeMillis by remember(selectedStageIdx) { mutableLongStateOf(0L) }
-    var elapsedMillis by remember(selectedStageIdx) { mutableLongStateOf(0L) }
-    var completedStrokes by remember(selectedStageIdx) { mutableIntStateOf(0) }
-    var totalTypedStrokes by remember(selectedStageIdx) { mutableIntStateOf(0) }
-    var maxCpm by remember(selectedStageIdx) { mutableIntStateOf(0) }
-    var showResultDialog by remember(selectedStageIdx) { mutableStateOf(false) }
+    var startTimeMillis by remember(language, selectedStageIdx) { mutableLongStateOf(0L) }
+    var elapsedMillis by remember(language, selectedStageIdx) { mutableLongStateOf(0L) }
+    var completedStrokes by remember(language, selectedStageIdx) { mutableIntStateOf(0) }
+    var totalTypedStrokes by remember(language, selectedStageIdx) { mutableIntStateOf(0) }
+    var maxCpm by remember(language, selectedStageIdx) { mutableIntStateOf(0) }
+    var showResultDialog by remember(language, selectedStageIdx) { mutableStateOf(false) }
     var useBuiltInKeyboard by remember { mutableStateOf(true) }
 
     val currentTarget = targetItems.getOrElse(currentIndex) { "" }
@@ -131,7 +135,7 @@ fun PositionPracticeScreen(
             val durSec = (elapsedMillis / 1000L).toInt().coerceAtLeast(1)
             onSaveRecord(
                 TypingMode.POSITION,
-                currentStage.title,
+                "[${language.shortLabel}] ${currentStage.title}",
                 finalEval.cpm,
                 finalMax,
                 finalEval.accuracyPercent,
@@ -145,7 +149,6 @@ fun PositionPracticeScreen(
         }
     }
 
-    // 목표 글자와 정확히 일치하면 짧은 딜레이 후 자동으로 다음 글자로 이동
     LaunchedEffect(currentInput, currentTarget) {
         if (currentTarget.isNotEmpty() && currentInput == currentTarget && !showResultDialog) {
             delay(140L)
@@ -176,7 +179,7 @@ fun PositionPracticeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("자리 연습", fontWeight = FontWeight.Bold) },
+                title = { Text("자리 연습 (${language.shortLabel})", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로")
@@ -199,6 +202,14 @@ fun PositionPracticeScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            LanguageSelectorRow(
+                selectedLanguage = language,
+                onSelectLanguage = {
+                    language = it
+                    onLanguageChange(it)
+                }
+            )
+
             // 단계 선택 칩
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
@@ -243,7 +254,6 @@ fun PositionPracticeScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // 이전 / 현재 / 다음 글자 미리보기
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly,
@@ -256,12 +266,12 @@ fun PositionPracticeScreen(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(14.dp))
                                 .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .padding(horizontal = 18.dp, vertical = 10.dp),
+                                .padding(horizontal = 16.dp, vertical = 10.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = prevChar,
-                                fontSize = 24.sp,
+                                fontSize = 20.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -270,13 +280,13 @@ fun PositionPracticeScreen(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(20.dp))
                                 .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f))
-                                .padding(horizontal = 36.dp, vertical = 18.dp),
+                                .padding(horizontal = 28.dp, vertical = 16.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             ColoredTargetText(
                                 target = currentTarget,
                                 statuses = evaluation.charStatuses,
-                                fontSize = 54.sp,
+                                fontSize = if (currentTarget.length <= 2) 48.sp else 36.sp,
                                 textAlign = TextAlign.Center
                             )
                         }
@@ -285,12 +295,12 @@ fun PositionPracticeScreen(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(14.dp))
                                 .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .padding(horizontal = 18.dp, vertical = 10.dp),
+                                .padding(horizontal = 16.dp, vertical = 10.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = nextChar,
-                                fontSize = 24.sp,
+                                fontSize = 20.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -304,14 +314,17 @@ fun PositionPracticeScreen(
                 }
             }
 
-            // 입력 방식 토글 & 외부/시스템 키보드 입력창
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "내장 두벌식 터치 키보드 & 손가락 가이드 표시",
+                    text = if (language == TypingLanguage.KOREAN) {
+                        "내장 두벌식 터치 키보드 & 손가락 가이드 표시"
+                    } else {
+                        "내장 QWERTY 영문 키보드 & 손가락 가이드 표시"
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium
                 )
@@ -336,6 +349,7 @@ fun PositionPracticeScreen(
                 DubeolsikKeyboard(
                     nextRequiredJamo = evaluation.nextRequiredJamo,
                     requiresShift = evaluation.requiresShift,
+                    language = language,
                     interactive = true,
                     showBottomActionRow = true,
                     onJamoClick = { jamo ->
@@ -368,7 +382,7 @@ fun PositionPracticeScreen(
         )
         PracticeResultDialog(
             title = "자리 연습 완료!",
-            subtitle = currentStage.title,
+            subtitle = "[${language.shortLabel}] ${currentStage.title}",
             avgCpm = finalEval.cpm,
             maxCpm = maxOf(maxCpm, finalEval.cpm),
             accuracy = finalEval.accuracyPercent,

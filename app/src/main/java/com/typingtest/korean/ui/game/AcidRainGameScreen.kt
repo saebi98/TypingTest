@@ -7,14 +7,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -32,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -54,6 +53,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.typingtest.korean.data.ContentRepository
+import com.typingtest.korean.data.TypingLanguage
 import com.typingtest.korean.data.TypingMode
 import com.typingtest.korean.engine.HangulEngine
 import com.typingtest.korean.ui.components.PracticeResultDialog
@@ -71,8 +71,8 @@ private enum class RainItemType(val badge: String, val bgColor: Color, val descr
 private data class FallingWord(
     val id: Long,
     val text: String,
-    val xFraction: Float, // 0.05f .. 0.72f
-    val yFraction: Float, // 0.0f .. 1.0f
+    val xFraction: Float,
+    val yFraction: Float,
     val speedMultiplier: Float,
     val itemType: RainItemType
 )
@@ -80,10 +80,13 @@ private data class FallingWord(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AcidRainGameScreen(
+    initialLanguage: TypingLanguage = TypingLanguage.KOREAN,
+    onLanguageChange: (TypingLanguage) -> Unit = {},
     onSaveRecord: (TypingMode, String, Int, Int, Float, Int, Int) -> Unit,
     onBack: () -> Unit
 ) {
-    val wordPool = remember { ContentRepository.acidRainWordPool }
+    var language by remember { mutableStateOf(initialLanguage) }
+    val wordPool = remember(language) { ContentRepository.getAcidRainWordPool(language) }
     val fallingWords = remember { mutableStateListOf<FallingWord>() }
 
     var isPlaying by remember { mutableStateOf(true) }
@@ -125,7 +128,7 @@ fun AcidRainGameScreen(
         val durSec = (elapsedMillis / 1000L).toInt().coerceAtLeast(1)
         onSaveRecord(
             TypingMode.ACID_RAIN,
-            "산성비 Lv.$level (${clearedCount}단어)",
+            "[${language.shortLabel}] 산성비 Lv.$level (${clearedCount}단어)",
             currentCpm,
             maxOf(maxCpm, currentCpm),
             100f,
@@ -147,11 +150,11 @@ fun AcidRainGameScreen(
         maxCpm = 0
         isGameOver = false
         isPlaying = true
-        statusBanner = "산성비 방어 작전을 시작합니다!"
+        statusBanner = "${language.flagEmoji} ${language.label} 산성비 방어 작전을 시작합니다!"
     }
 
     // 메인 게임 루프 (40ms 틱 = 25 FPS)
-    LaunchedEffect(isPlaying, isGameOver) {
+    LaunchedEffect(language, isPlaying, isGameOver) {
         var spawnTimerMs = 1200L
         while (isPlaying && !isGameOver) {
             val tickMs = 40L
@@ -163,7 +166,6 @@ fun AcidRainGameScreen(
             val isSlowActive = now < slowExpireMillis
             val baseFallStep = (0.0024f + (level - 1) * 0.00045f) * (if (isSlowActive) 0.45f else 1.0f)
 
-            // 1. 기존 단어들 낙하 이동 및 바닥 충돌 체크
             val updated = mutableListOf<FallingWord>()
             var lostLifeCount = 0
             for (fw in fallingWords) {
@@ -186,7 +188,6 @@ fun AcidRainGameScreen(
                 }
             }
 
-            // 2. 신규 단어 스폰
             val spawnIntervalMs = (1950L - (level - 1) * 140L).coerceAtLeast(700L)
             if (spawnTimerMs >= spawnIntervalMs && fallingWords.size < 9) {
                 spawnTimerMs = 0L
@@ -219,7 +220,6 @@ fun AcidRainGameScreen(
         val trimmed = candidateInput.trim()
         if (trimmed.isEmpty()) return false
 
-        // 가장 아래쪽에 있는 일치 단어를 우선 타격
         val targetWord = fallingWords
             .filter { it.text == trimmed }
             .maxByOrNull { it.yFraction } ?: return false
@@ -264,13 +264,26 @@ fun AcidRainGameScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("산성비 타자 디펜스", fontWeight = FontWeight.Bold) },
+                title = { Text("산성비 디펜스 (${language.shortLabel})", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로")
                     }
                 },
                 actions = {
+                    TextButton(
+                        onClick = {
+                            val nextLang = if (language == TypingLanguage.KOREAN) TypingLanguage.ENGLISH else TypingLanguage.KOREAN
+                            language = nextLang
+                            onLanguageChange(nextLang)
+                            resetGame()
+                        }
+                    ) {
+                        Text(
+                            text = if (language == TypingLanguage.KOREAN) "🇺🇸 영문 전환" else "🇰🇷 한글 전환",
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                     IconButton(onClick = { isPlaying = !isPlaying }) {
                         Icon(
                             imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
@@ -324,7 +337,6 @@ fun AcidRainGameScreen(
                 )
             }
 
-            // 이벤트 배너
             Text(
                 text = statusBanner,
                 style = MaterialTheme.typography.labelMedium,
@@ -332,7 +344,7 @@ fun AcidRainGameScreen(
                 modifier = Modifier.padding(horizontal = 4.dp)
             )
 
-            // 산성비 낙하 게임 월드 (BoxWithConstraints로 반응형 좌표 매핑)
+            // 산성비 낙하 게임 월드
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -348,7 +360,6 @@ fun AcidRainGameScreen(
                 val arenaWidth = maxWidth
                 val arenaHeight = maxHeight
 
-                // 떨어지는 단어 렌더링
                 fallingWords.forEach { fw ->
                     val xOffset = arenaWidth * fw.xFraction
                     val yOffset = (arenaHeight - 36.dp) * fw.yFraction
@@ -388,7 +399,6 @@ fun AcidRainGameScreen(
                     }
                 }
 
-                // 하단 산성 호수 경계선
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
@@ -410,7 +420,6 @@ fun AcidRainGameScreen(
                 }
             }
 
-            // 하단 입력 바 (일치하는 순간 즉시 자동 격추 + 지우기 버튼)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -456,7 +465,7 @@ fun AcidRainGameScreen(
     if (isGameOver) {
         PracticeResultDialog(
             title = "산성비 게임 종료!",
-            subtitle = "도달 레벨: Lv.$level · 제거한 단어: ${clearedCount}개",
+            subtitle = "[${language.shortLabel}] 도달 레벨: Lv.$level · 제거한 단어: ${clearedCount}개",
             avgCpm = currentCpm,
             maxCpm = maxOf(maxCpm, currentCpm),
             accuracy = 100f,

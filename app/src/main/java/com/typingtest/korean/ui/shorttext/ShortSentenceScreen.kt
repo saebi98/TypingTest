@@ -5,10 +5,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -51,10 +49,12 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.typingtest.korean.data.ContentRepository
+import com.typingtest.korean.data.TypingLanguage
 import com.typingtest.korean.data.TypingMode
 import com.typingtest.korean.engine.HangulEngine
 import com.typingtest.korean.ui.components.ColoredTargetText
 import com.typingtest.korean.ui.components.DubeolsikKeyboard
+import com.typingtest.korean.ui.components.LanguageSelectorRow
 import com.typingtest.korean.ui.components.PracticeResultDialog
 import com.typingtest.korean.ui.components.TypingTopMetricsBar
 import kotlinx.coroutines.delay
@@ -62,23 +62,26 @@ import kotlinx.coroutines.delay
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShortSentenceScreen(
+    initialLanguage: TypingLanguage = TypingLanguage.KOREAN,
+    onLanguageChange: (TypingLanguage) -> Unit = {},
     onSaveRecord: (TypingMode, String, Int, Int, Float, Int, Int) -> Unit,
     onBack: () -> Unit
 ) {
     val totalSetSize = 10
-    var sentences by remember {
-        mutableStateOf(ContentRepository.shortSentences.shuffled().take(totalSetSize))
+    var language by remember { mutableStateOf(initialLanguage) }
+    var sentences by remember(language) {
+        mutableStateOf(ContentRepository.getShortSentences(language).shuffled().take(totalSetSize))
     }
-    var currentIndex by remember { mutableIntStateOf(0) }
-    var currentInput by remember { mutableStateOf("") }
+    var currentIndex by remember(language) { mutableIntStateOf(0) }
+    var currentInput by remember(language) { mutableStateOf("") }
 
-    var sessionStartMillis by remember { mutableLongStateOf(0L) }
-    var elapsedMillis by remember { mutableLongStateOf(0L) }
-    var completedStrokes by remember { mutableIntStateOf(0) }
-    var totalTypedStrokes by remember { mutableIntStateOf(0) }
-    var maxCpm by remember { mutableIntStateOf(0) }
+    var sessionStartMillis by remember(language) { mutableLongStateOf(0L) }
+    var elapsedMillis by remember(language) { mutableLongStateOf(0L) }
+    var completedStrokes by remember(language) { mutableIntStateOf(0) }
+    var totalTypedStrokes by remember(language) { mutableIntStateOf(0) }
+    var maxCpm by remember(language) { mutableIntStateOf(0) }
     val sentenceCpmHistory = remember { mutableStateListOf<Int>() }
-    var showResultDialog by remember { mutableStateOf(false) }
+    var showResultDialog by remember(language) { mutableStateOf(false) }
     var showGuideKeyboard by remember { mutableStateOf(false) }
 
     val focusRequester = remember { FocusRequester() }
@@ -136,7 +139,7 @@ fun ShortSentenceScreen(
             val durSec = (elapsedMillis / 1000L).toInt().coerceAtLeast(1)
             onSaveRecord(
                 TypingMode.SHORT_TEXT,
-                "속담·명언 10문장",
+                "[${language.shortLabel}] 속담·명언 10문장",
                 finalEval.cpm,
                 finalMax,
                 finalEval.accuracyPercent,
@@ -150,7 +153,6 @@ fun ShortSentenceScreen(
         }
     }
 
-    // 목표 문장과 완전히 일치하면 자동 제출
     LaunchedEffect(currentInput, currentSentence) {
         if (currentSentence.isNotEmpty() && currentInput == currentSentence && !showResultDialog) {
             delay(180L)
@@ -159,7 +161,7 @@ fun ShortSentenceScreen(
     }
 
     fun resetSession() {
-        sentences = ContentRepository.shortSentences.shuffled().take(totalSetSize)
+        sentences = ContentRepository.getShortSentences(language).shuffled().take(totalSetSize)
         currentIndex = 0
         currentInput = ""
         sessionStartMillis = 0L
@@ -189,7 +191,7 @@ fun ShortSentenceScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("짧은 글 연습", fontWeight = FontWeight.Bold) },
+                title = { Text("짧은 글 연습 (${language.shortLabel})", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로")
@@ -212,6 +214,14 @@ fun ShortSentenceScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            LanguageSelectorRow(
+                selectedLanguage = language,
+                onSelectLanguage = {
+                    language = it
+                    onLanguageChange(it)
+                }
+            )
+
             TypingTopMetricsBar(
                 cpm = evaluation.cpm,
                 maxCpm = maxCpm,
@@ -251,7 +261,7 @@ fun ShortSentenceScreen(
                         ColoredTargetText(
                             target = currentSentence,
                             statuses = evaluation.charStatuses,
-                            fontSize = 22.sp
+                            fontSize = 21.sp
                         )
                     }
 
@@ -301,7 +311,7 @@ fun ShortSentenceScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "두벌식 자판 가이드 표시",
+                    text = if (language == TypingLanguage.KOREAN) "두벌식 자판 가이드 표시" else "QWERTY 자판 가이드 표시",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Row(
@@ -325,6 +335,7 @@ fun ShortSentenceScreen(
                 DubeolsikKeyboard(
                     nextRequiredJamo = evaluation.nextRequiredJamo,
                     requiresShift = evaluation.requiresShift,
+                    language = language,
                     interactive = true,
                     showBottomActionRow = true,
                     onJamoClick = { jamo ->
@@ -355,7 +366,7 @@ fun ShortSentenceScreen(
         )
         PracticeResultDialog(
             title = "짧은 글 연습 완료!",
-            subtitle = "속담·명언 10문장 완주",
+            subtitle = "[${language.shortLabel}] 속담·명언 10문장 완주",
             avgCpm = finalEval.cpm,
             maxCpm = maxOf(maxCpm, finalEval.cpm),
             accuracy = finalEval.accuracyPercent,

@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.typingtest.korean.data.TypingLanguage
 import com.typingtest.korean.engine.HangulEngine
 
 private data class KeySpec(
@@ -39,7 +40,8 @@ private data class KeySpec(
     val isHomeKey: Boolean = false
 )
 
-private val ROW_TOP = listOf(
+// 한글 두벌식 키 배열
+private val KO_ROW_TOP = listOf(
     KeySpec('ㅂ', 'ㅃ', isLeftHand = true, fingerLabel = "왼소지"),
     KeySpec('ㅈ', 'ㅉ', isLeftHand = true, fingerLabel = "왼약지"),
     KeySpec('ㄷ', 'ㄸ', isLeftHand = true, fingerLabel = "왼중지"),
@@ -52,7 +54,7 @@ private val ROW_TOP = listOf(
     KeySpec('ㅔ', 'ㅖ', isLeftHand = false, fingerLabel = "오른소지")
 )
 
-private val ROW_MIDDLE = listOf(
+private val KO_ROW_MIDDLE = listOf(
     KeySpec('ㅁ', null, isLeftHand = true, fingerLabel = "왼소지", isHomeKey = true),
     KeySpec('ㄴ', null, isLeftHand = true, fingerLabel = "왼약지", isHomeKey = true),
     KeySpec('ㅇ', null, isLeftHand = true, fingerLabel = "왼중지", isHomeKey = true),
@@ -64,7 +66,7 @@ private val ROW_MIDDLE = listOf(
     KeySpec('ㅣ', null, isLeftHand = false, fingerLabel = "오른약지", isHomeKey = true)
 )
 
-private val ROW_BOTTOM = listOf(
+private val KO_ROW_BOTTOM = listOf(
     KeySpec('ㅋ', null, isLeftHand = true, fingerLabel = "왼소지"),
     KeySpec('ㅌ', null, isLeftHand = true, fingerLabel = "왼약지"),
     KeySpec('ㅊ', null, isLeftHand = true, fingerLabel = "왼중지"),
@@ -74,15 +76,50 @@ private val ROW_BOTTOM = listOf(
     KeySpec('ㅡ', null, isLeftHand = false, fingerLabel = "오른중지")
 )
 
+// 영문 QWERTY 키 배열
+private val EN_ROW_TOP = listOf(
+    KeySpec('q', 'Q', isLeftHand = true, fingerLabel = "왼소지"),
+    KeySpec('w', 'W', isLeftHand = true, fingerLabel = "왼약지"),
+    KeySpec('e', 'E', isLeftHand = true, fingerLabel = "왼중지"),
+    KeySpec('r', 'R', isLeftHand = true, fingerLabel = "왼검지"),
+    KeySpec('t', 'T', isLeftHand = true, fingerLabel = "왼검지"),
+    KeySpec('y', 'Y', isLeftHand = false, fingerLabel = "오른검지"),
+    KeySpec('u', 'U', isLeftHand = false, fingerLabel = "오른검지"),
+    KeySpec('i', 'I', isLeftHand = false, fingerLabel = "오른중지"),
+    KeySpec('o', 'O', isLeftHand = false, fingerLabel = "오른약지"),
+    KeySpec('p', 'P', isLeftHand = false, fingerLabel = "오른소지")
+)
+
+private val EN_ROW_MIDDLE = listOf(
+    KeySpec('a', 'A', isLeftHand = true, fingerLabel = "왼소지", isHomeKey = true),
+    KeySpec('s', 'S', isLeftHand = true, fingerLabel = "왼약지", isHomeKey = true),
+    KeySpec('d', 'D', isLeftHand = true, fingerLabel = "왼중지", isHomeKey = true),
+    KeySpec('f', 'F', isLeftHand = true, fingerLabel = "왼검지", isHomeKey = true),
+    KeySpec('g', 'G', isLeftHand = true, fingerLabel = "왼검지"),
+    KeySpec('h', 'H', isLeftHand = false, fingerLabel = "오른검지"),
+    KeySpec('j', 'J', isLeftHand = false, fingerLabel = "오른검지", isHomeKey = true),
+    KeySpec('k', 'K', isLeftHand = false, fingerLabel = "오른중지", isHomeKey = true),
+    KeySpec('l', 'L', isLeftHand = false, fingerLabel = "오른약지", isHomeKey = true)
+)
+
+private val EN_ROW_BOTTOM = listOf(
+    KeySpec('z', 'Z', isLeftHand = true, fingerLabel = "왼소지"),
+    KeySpec('x', 'X', isLeftHand = true, fingerLabel = "왼약지"),
+    KeySpec('c', 'C', isLeftHand = true, fingerLabel = "왼중지"),
+    KeySpec('v', 'V', isLeftHand = true, fingerLabel = "왼검지"),
+    KeySpec('b', 'B', isLeftHand = true, fingerLabel = "왼검지"),
+    KeySpec('n', 'N', isLeftHand = false, fingerLabel = "오른검지"),
+    KeySpec('m', 'M', isLeftHand = false, fingerLabel = "오른검지")
+)
+
 /**
- * 두벌식 한글 가상 키보드 & 손가락 가이드 컴포넌트
- * - 터치 시 직접 자모 입력 가능 (`interactive = true`)
- * - 외부 블루투스 키보드 사용 시 다음 눌러야 할 자모와 손가락 위치 가이드 표시
+ * 한글 두벌식 & 영문 QWERTY 가상 키보드 & 손가락 가이드 컴포넌트
  */
 @Composable
 fun DubeolsikKeyboard(
     nextRequiredJamo: Char?,
     requiresShift: Boolean,
+    language: TypingLanguage = TypingLanguage.KOREAN,
     interactive: Boolean = true,
     showBottomActionRow: Boolean = true,
     onJamoClick: (Char) -> Unit = {},
@@ -91,11 +128,15 @@ fun DubeolsikKeyboard(
     onEnterClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    var manualShift by remember { mutableStateOf(false) }
+    var manualShift by remember(language) { mutableStateOf(false) }
     val isShifted = manualShift || requiresShift
     val baseTargetKey = nextRequiredJamo?.let { HangulEngine.getBaseKeyForJamo(it) }
 
-    val targetKeySpec = (ROW_TOP + ROW_MIDDLE + ROW_BOTTOM).find { it.normal == baseTargetKey }
+    val rowTop = if (language == TypingLanguage.KOREAN) KO_ROW_TOP else EN_ROW_TOP
+    val rowMiddle = if (language == TypingLanguage.KOREAN) KO_ROW_MIDDLE else EN_ROW_MIDDLE
+    val rowBottom = if (language == TypingLanguage.KOREAN) KO_ROW_BOTTOM else EN_ROW_BOTTOM
+
+    val targetKeySpec = (rowTop + rowMiddle + rowBottom).find { it.normal == baseTargetKey }
 
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -120,11 +161,11 @@ fun DubeolsikKeyboard(
                         buildString {
                             append("다음 입력 키: [ ")
                             if (requiresShift) append("Shift + ")
-                            append(nextRequiredJamo)
+                            append(if (nextRequiredJamo == ' ') "Space" else nextRequiredJamo)
                             append(" ]")
                         }
                     } else {
-                        "두벌식 표준 자판 가이드"
+                        if (language == TypingLanguage.KOREAN) "두벌식 표준 자판 가이드" else "QWERTY 영문 자판 가이드"
                     },
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
@@ -141,17 +182,19 @@ fun DubeolsikKeyboard(
                 }
             }
 
-            // 1열 (ㅂ ㅈ ㄷ ㄱ ㅅ ㅛ ㅕ ㅑ ㅐ ㅔ)
+            // 1열
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                ROW_TOP.forEach { spec ->
+                rowTop.forEach { spec ->
                     val displayChar = if (isShifted && spec.shifted != null) spec.shifted else spec.normal
                     val isHighlighted = baseTargetKey == spec.normal
                     KeyButton(
                         mainChar = displayChar,
-                        subChar = if (!isShifted) spec.shifted else spec.normal,
+                        subChar = if (language == TypingLanguage.KOREAN) {
+                            if (!isShifted) spec.shifted else spec.normal
+                        } else null,
                         isHighlighted = isHighlighted,
                         isLeftHand = spec.isLeftHand,
                         isHomeKey = spec.isHomeKey,
@@ -165,24 +208,25 @@ fun DubeolsikKeyboard(
                 }
             }
 
-            // 2열 (ㅁ ㄴ ㅇ ㄹ ㅎ ㅗ ㅓ ㅏ ㅣ)
+            // 2열
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                ROW_MIDDLE.forEach { spec ->
+                rowMiddle.forEach { spec ->
+                    val displayChar = if (isShifted && spec.shifted != null) spec.shifted else spec.normal
                     val isHighlighted = baseTargetKey == spec.normal
                     KeyButton(
-                        mainChar = spec.normal,
+                        mainChar = displayChar,
                         subChar = null,
                         isHighlighted = isHighlighted,
                         isLeftHand = spec.isLeftHand,
                         isHomeKey = spec.isHomeKey,
                         interactive = interactive,
                         onClick = {
-                            onJamoClick(spec.normal)
+                            onJamoClick(displayChar)
                             manualShift = false
                         },
                         modifier = Modifier.weight(1f)
@@ -190,29 +234,30 @@ fun DubeolsikKeyboard(
                 }
             }
 
-            // 3열 (Shift + ㅋ ㅌ ㅊ ㅍ ㅠ ㅜ ㅡ + ⌫)
+            // 3열 (Shift + 하단열 + ⌫)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 ActionKeyButton(
-                    label = "⇧ 쌍자음",
+                    label = if (language == TypingLanguage.KOREAN) "⇧ 쌍자음" else "⇧ Shift",
                     isHighlighted = requiresShift || manualShift,
                     interactive = interactive,
                     onClick = { manualShift = !manualShift },
                     modifier = Modifier.weight(1.45f)
                 )
-                ROW_BOTTOM.forEach { spec ->
+                rowBottom.forEach { spec ->
+                    val displayChar = if (isShifted && spec.shifted != null) spec.shifted else spec.normal
                     val isHighlighted = baseTargetKey == spec.normal
                     KeyButton(
-                        mainChar = spec.normal,
+                        mainChar = displayChar,
                         subChar = null,
                         isHighlighted = isHighlighted,
                         isLeftHand = spec.isLeftHand,
                         isHomeKey = spec.isHomeKey,
                         interactive = interactive,
                         onClick = {
-                            onJamoClick(spec.normal)
+                            onJamoClick(displayChar)
                             manualShift = false
                         },
                         modifier = Modifier.weight(1f)
@@ -232,13 +277,31 @@ fun DubeolsikKeyboard(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
+                    if (language == TypingLanguage.ENGLISH) {
+                        ActionKeyButton(
+                            label = ",",
+                            isHighlighted = nextRequiredJamo == ',',
+                            interactive = interactive,
+                            onClick = { onJamoClick(',') },
+                            modifier = Modifier.weight(0.6f)
+                        )
+                    }
                     ActionKeyButton(
                         label = "간격 (Space)",
                         isHighlighted = nextRequiredJamo == ' ',
                         interactive = interactive,
                         onClick = onSpaceClick,
-                        modifier = Modifier.weight(3f)
+                        modifier = Modifier.weight(2.6f)
                     )
+                    if (language == TypingLanguage.ENGLISH) {
+                        ActionKeyButton(
+                            label = ".",
+                            isHighlighted = nextRequiredJamo == '.',
+                            interactive = interactive,
+                            onClick = { onJamoClick('.') },
+                            modifier = Modifier.weight(0.6f)
+                        )
+                    }
                     ActionKeyButton(
                         label = "다음 / 완료 ↵",
                         isHighlighted = false,
@@ -265,7 +328,6 @@ private fun KeyButton(
 ) {
     val bgColor = when {
         isHighlighted -> Color(0xFFF59E0B)
-        isLeftHand -> MaterialTheme.colorScheme.surface
         else -> MaterialTheme.colorScheme.surface
     }
     val borderColor = when {
